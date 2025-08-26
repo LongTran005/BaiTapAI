@@ -1,0 +1,10 @@
+import numpy as np
+s = np.array([-2, 6, 3, 10, 15, 48])
+a = slice(2, 6, 2)
+b = slice(1, 6, 2)
+c = slice(3, 6)
+d = slice(5, 2, -1)
+print(s[a])
+print(s[b])
+print(s[c])
+print(s[d])
