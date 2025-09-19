@@ -31,15 +31,18 @@ class NQueensGUI:
         ttk.Button(frame_bottom, text="BFS", command=self.run_bfs).pack(side="left", padx=5)
         ttk.Button(frame_bottom, text="BFS(2)", command=self.run_bfs2).pack(side="left", padx=5)
         ttk.Button(frame_bottom, text="DFS", command=self.run_dfs).pack(side="left", padx=5)
+        ttk.Button(frame_bottom, text="DLS", command=self.run_dls).pack(side="left", padx=5)
 
         # ====== Dòng dưới ======
         self.dls_limit_var = tk.IntVar(value=self.n)
         ttk.Label(frame_top, text="DLS limit:").pack(side="left", padx=(12, 2))
         ttk.Entry(frame_top, width=3, textvariable=self.dls_limit_var).pack(side="left", padx=(0, 8))
 
-        ttk.Button(frame_top, text="DLS", command=self.run_dls).pack(side="left", padx=5)
+        
         ttk.Button(frame_top, text="UCS", command=self.run_ucs).pack(side="left", padx=5)
         ttk.Button(frame_top, text="IDS", command=self.run_ids).pack(side="left", padx=5)
+        ttk.Button(frame_top, text="Greedy", command=self.run_greedy).pack(side="left", padx=5)
+        ttk.Button(frame_top, text="A*", command=self.run_astar).pack(side="left", padx=5)
         ttk.Button(frame_top, text="Stop", command=self.stop).pack(side="left", padx=5)
 
         self.status = ttk.Label(root, text="Ready", relief="sunken", anchor="w")
@@ -281,7 +284,84 @@ class NQueensGUI:
             self.job = self.root.after(self.delay, step)
         self.status.config(text=f"IDS: bắt đầu với limit = {current_limit}")
         step()
+        
+    # ================= Greedy ==================
+    def heuristic_to_goal(self, state):
+        # heuristic đơn giản: số hậu còn thiếu để đạt 8
+        return self.n - len(state)
+    def run_greedy(self):
+        self.stop()
+        pq = []  # (h(n), state)
+        start = ()
+        heapq.heappush(pq, (self.heuristic_to_goal(start), start))
+        visited = set()
+        goal = tuple(self.goal)
+        def step():
+            if not pq:
+                self.status.config(text="Greedy fail")
+                return
+            h, s = heapq.heappop(pq)
+            if s in visited:
+                self.job = self.root.after(self.delay, step)
+                return
+            visited.add(s)
+            # Hiển thị bước hiện tại
+            self.show(self.canvas1, s, "blue")
+            self.status.config(text=f"Greedy: h={h} depth={len(s)}")
+            if s == goal:
+                self.show(self.canvas1, s, "green")
+                self.status.config(text="Greedy found")
+                self.print_solution(s)
+                return
+            r = len(s)
+            if r < self.n:
+                for c in range(self.n):
+                    if all(cc != c and abs(rr - r) != abs(cc - c) for rr, cc in enumerate(s)):
+                        new_state = s + (c,)
+                        hn = self.heuristic_to_goal(new_state)
+                        heapq.heappush(pq, (hn, new_state))
+            self.job = self.root.after(self.delay, step)
+        step()
+
+    # ================= A* ==================
+    def run_astar(self):
+        self.stop()
+        start = ()
+        goal = tuple(self.goal)
+        pq = []  # (f, g, state, path_costs)
+        heapq.heappush(pq, (self.heuristic_to_goal(start), 0, start, []))
+        visited = set()
+        def step():
+            if not pq:
+                self.status.config(text="A* fail")
+                return
+            f, g, s, costs = heapq.heappop(pq)
+            if s in visited:
+                self.job = self.root.after(self.delay, step)
+                return
+            visited.add(s)
+            # Hiển thị trạng thái hiện tại
+            self.show(self.canvas1, s, "blue")
+            self.status.config(text=f"A*: g={g}, h={f - g}, f={f}, depth={len(s)}")
+            if s == goal:
+                self.show(self.canvas1, s, "green")
+                self.status.config(text="A* found")
+                print("Nghiệm tìm được:", s)
+                print("Chi phí từng bước:", costs)
+                return
+            r = len(s)
+            if r < self.n:
+                for c in range(self.n):
+                    if all(cc != c and abs(rr - r) != abs(cc - c) for rr, cc in enumerate(s)):
+                        new_state = s + (c,)
+                        step_cost = self.attacked_count(new_state)
+                        new_g = g + step_cost
+                        new_h = self.heuristic_to_goal(new_state)
+                        heapq.heappush(pq, (new_g + new_h, new_g, new_state, costs + [step_cost]))
+            self.job = self.root.after(self.delay, step)
+        step()
 
 root = tk.Tk()
 app = NQueensGUI(root)
 root.mainloop()
+
