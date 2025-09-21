@@ -1,6 +1,7 @@
 import tkinter as tk
 from tkinter import ttk
 import random
+import math
 from collections import deque
 import heapq
 
@@ -12,6 +13,7 @@ class NQueensGUI:
         self.delay = 30
         self.goal = self.random_goal_state()
         self.job = None
+        self.running = False  # flag chung cho một số search
 
         self.root.title("8 Queens")
         self.canvas1 = tk.Canvas(root, width=n*self.size, height=n*self.size)
@@ -19,12 +21,15 @@ class NQueensGUI:
         self.canvas2 = tk.Canvas(root, width=n*self.size, height=n*self.size)
         self.canvas2.pack(side="right", padx=5, pady=5)
 
-        # tạo 2 dòng nút
+        # tạo 3 dòng nút
         frame_top = ttk.Frame(root)
         frame_top.pack(side="bottom", pady=2)
 
         frame_bottom = ttk.Frame(root)
         frame_bottom.pack(side="bottom", pady=2)
+
+        frame_middle = ttk.Frame(root)
+        frame_middle.pack(side="bottom", pady=5)
 
         # ====== Dòng trên ======
         ttk.Button(frame_bottom, text="Random Goal", command=self.new_goal).pack(side="left", padx=5)
@@ -32,18 +37,23 @@ class NQueensGUI:
         ttk.Button(frame_bottom, text="BFS(2)", command=self.run_bfs2).pack(side="left", padx=5)
         ttk.Button(frame_bottom, text="DFS", command=self.run_dfs).pack(side="left", padx=5)
         ttk.Button(frame_bottom, text="DLS", command=self.run_dls).pack(side="left", padx=5)
+        ttk.Button(frame_bottom, text="UCS", command=self.run_ucs).pack(side="left", padx=5)
+        ttk.Button(frame_bottom, text="IDS", command=self.run_ids).pack(side="left", padx=5)
 
         # ====== Dòng dưới ======
         self.dls_limit_var = tk.IntVar(value=self.n)
         ttk.Label(frame_top, text="DLS limit:").pack(side="left", padx=(12, 2))
         ttk.Entry(frame_top, width=3, textvariable=self.dls_limit_var).pack(side="left", padx=(0, 8))
 
-        
-        ttk.Button(frame_top, text="UCS", command=self.run_ucs).pack(side="left", padx=5)
-        ttk.Button(frame_top, text="IDS", command=self.run_ids).pack(side="left", padx=5)
         ttk.Button(frame_top, text="Greedy", command=self.run_greedy).pack(side="left", padx=5)
         ttk.Button(frame_top, text="A*", command=self.run_astar).pack(side="left", padx=5)
+        ttk.Button(frame_top, text="Hill Climbing", command=self.run_hill_climbing).pack(side="left", padx=5)
+        ttk.Button(frame_top, text="SA", command=self.run_simulated_annealing).pack(side="left", padx=5)
+        ttk.Button(frame_top, text="GA", command=self.run_genetic).pack(side="left", padx=5)
         ttk.Button(frame_top, text="Stop", command=self.stop).pack(side="left", padx=5)
+
+        # ====== Dòng giữa ======
+        ttk.Button(frame_middle, text="Beam", command=self.beam_search).pack(side="left", padx=5)
 
         self.status = ttk.Label(root, text="Ready", relief="sunken", anchor="w")
         self.status.pack(side="bottom", fill="x")
@@ -95,6 +105,8 @@ class NQueensGUI:
         self.status.config(text="New goal!")
 
     def stop(self):
+        # stop any ongoing animation/search
+        self.running = False
         if self.job:
             try: self.root.after_cancel(self.job)
             except: pass
@@ -120,6 +132,30 @@ class NQueensGUI:
                     nr += dr; nc += dc
             board[r][c] = 1
         return sum(sum(row) for row in board)
+
+    def attacked_positions(self, state):
+        """Trả về tập các ô (r,c) bị chiếm/đe dọa bởi state."""
+        attacked = set()
+        for r, c in enumerate(state):
+            # hàng & cột
+            for i in range(self.n):
+                attacked.add((r, i))
+                attacked.add((i, c))
+            # chéo
+            for dr, dc in [(-1,-1),(-1,1),(1,-1),(1,1)]:
+                nr, nc = r+dr, c+dc
+                while 0 <= nr < self.n and 0 <= nc < self.n:
+                    attacked.add((nr, nc))
+                    nr += dr; nc += dc
+            attacked.add((r,c))
+        return attacked
+
+    def is_safe(self, row, col, state):
+        """Kiểm tra có thể đặt ở (row,col) với state hiện tại không."""
+        for r, c in enumerate(state):
+            if c == col or abs(r - row) == abs(c - col):
+                return False
+        return True
 
     # ================= BFS, BFS2, DFS ==================
     def run_bfs(self):
@@ -215,13 +251,13 @@ class NQueensGUI:
                         stack.append(s+(c,))
             self.job = self.root.after(self.delay, step)
         step()
+
     # ================= UCS ==================
     def run_ucs(self):
         self.stop()
         pq = [(0, (), [])]  # (tổng chi phí hoặc step_cost, state, danh sách chi phí)
         visited = set()
         goal = self.goal
-
         def step():
             if not pq:
                 self.status.config(text="UCS fail"); return
@@ -229,16 +265,13 @@ class NQueensGUI:
             if s in visited:
                 self.job = self.root.after(self.delay, step); return
             visited.add(s)
-
             self.show(self.canvas1, s, "blue")
-
             if s == goal:
                 self.show(self.canvas1, s, "green")
                 self.status.config(text="UCS found")
                 print("Nghiệm tìm được:", s)
                 print("Chi phí sau mỗi bước:", costs)
                 return
-
             r = len(s)
             if r < self.n:
                 for c in range(self.n):
@@ -246,9 +279,9 @@ class NQueensGUI:
                         new_state = s+(c,)
                         step_cost = self.attacked_count(new_state)
                         heapq.heappush(pq, (step_cost, new_state, costs+[step_cost]))
-
             self.job = self.root.after(self.delay, step)
         step()
+
     # ================= IDS ==================
     def run_ids(self):
         self.stop()
@@ -275,7 +308,6 @@ class NQueensGUI:
                 self.status.config(text=f"IDS found (depth={len(s)})")
                 self.print_solution(s)
                 return
-
             r = len(s)
             if r < current_limit:
                 for c in reversed(range(self.n)):
@@ -284,7 +316,7 @@ class NQueensGUI:
             self.job = self.root.after(self.delay, step)
         self.status.config(text=f"IDS: bắt đầu với limit = {current_limit}")
         step()
-        
+
     # ================= Greedy ==================
     def heuristic_to_goal(self, state):
         # heuristic đơn giản: số hậu còn thiếu để đạt 8
@@ -360,8 +392,225 @@ class NQueensGUI:
                         heapq.heappush(pq, (new_g + new_h, new_g, new_state, costs + [step_cost]))
             self.job = self.root.after(self.delay, step)
         step()
+    # ================= Hill Climbing ==================
+    def heuristic_conflicts(self, state):
+        """Hàm heuristic: đếm số cặp hậu tấn công nhau"""
+        conflicts = 0
+        for i in range(len(state)):
+            for j in range(i + 1, len(state)):
+                if state[i] == state[j] or abs(state[i] - state[j]) == abs(i - j):
+                    conflicts += 1
+        return conflicts
+
+    def run_hill_climbing(self):
+        self.stop()
+        import random
+        # Khởi tạo: mỗi hàng một hậu ngẫu nhiên
+        current = tuple(random.randint(0, self.n - 1) for _ in range(self.n))
+        current_h = self.heuristic_conflicts(current)
+
+        self.status.config(text=f"Hill Climbing start: h={current_h}")
+        self.show(self.canvas1, current, "blue")
+
+        def step(state, h):
+            if h == 0:
+                self.show(self.canvas1, state, "red")
+                self.status.config(text="Hill climbing reached GOAL (no conflicts)!")
+                self.print_solution(state)
+                return
+
+            neighbors = []
+            # Sinh các neighbor bằng cách di chuyển hậu ở hàng r sang cột khác
+            for r in range(self.n):
+                for c in range(self.n):
+                    if c != state[r]:
+                        new_state = list(state)
+                        new_state[r] = c
+                        new_state = tuple(new_state)
+                        hn = self.heuristic_conflicts(new_state)
+                        neighbors.append((hn, new_state))
+
+            if not neighbors:
+                self.status.config(text="Hill climbing stuck (no neighbors)!")
+                return
+
+            # Sắp xếp neighbor theo heuristic
+            neighbors.sort(key=lambda x: x[0])
+            best_h, best_state = neighbors[0]
+
+            # Hiển thị việc đang xét các neighbor
+            if best_h < h:
+                self.show(self.canvas1, best_state, "blue")
+                self.status.config(text=f"Hill climbing: h={best_h}")
+                self.job = self.root.after(self.delay, step, best_state, best_h)
+            else:
+                # Kẹt: không có neighbor nào tốt hơn
+                self.show(self.canvas1, state, "orange")
+                self.status.config(text="Hill climbing stuck at local optimum!")
+        self.job = self.root.after(self.delay, step, current, current_h)
+
+    # =============== Simulated Annealing ================
+    def run_simulated_annealing(self):
+        self.stop()
+        goal = tuple(self.goal)
+
+        def temperature(t):
+            return max(0.01, min(1, 1 - t / 500))
+
+        current = tuple(random.randint(0, self.n - 1) for _ in range(self.n))
+        current_h = self.heuristic_conflicts(current)
+        t = 0
+
+        def step(state, h, t):
+            T = temperature(t)
+            if T <= 0.01:
+                self.show(self.canvas1, state, "yellow")
+                self.status.config(text="SA stopped: temperature too low")
+                return
+            if h == 0:  # nghiệm hợp lệ
+                if state == goal:
+                    self.show(self.canvas1, state, "green")
+                    self.status.config(text="SA found the GOAL!")
+                    self.print_solution(state)
+                else:
+                    self.show(self.canvas1, state, "red")
+                    self.status.config(text="SA found another solution (not the goal)")
+                return
+            # chọn láng giềng
+            neighbor = list(state)
+            r = random.randrange(self.n)
+            c = random.randrange(self.n)
+            neighbor[r] = c
+            neighbor = tuple(neighbor)
+            neighbor_h = self.heuristic_conflicts(neighbor)
+            delta = h - neighbor_h
+            if delta > 0 or random.random() < math.exp(delta / T):
+                new_state, new_h = neighbor, neighbor_h
+            else:
+                new_state, new_h = state, h
+            self.show(self.canvas1, new_state, "blue")
+            self.status.config(text=f"SA step {t}, h={new_h}, T={T:.3f}")
+            self.job = self.root.after(self.delay, step, new_state, new_h, t + 1)
+        step(current, current_h, t)
+
+    # ================ Genetic Algorithms ================
+    def run_genetic(self):
+        self.stop()
+        goal = tuple(self.goal)
+        POP_SIZE = 50
+        MUT_RATE = 0.2
+        MAX_GEN = 700
+        # --- hàm fitness ---
+        def fitness(state):
+            non_attacking = 28 - self.heuristic_conflicts(state)  # 28 cặp max
+            return max(1, non_attacking)  # tránh chia 0
+        # --- khởi tạo quần thể ---
+        population = [tuple(random.randint(0, self.n - 1) for _ in range(self.n))
+                      for _ in range(POP_SIZE)]
+        generation = 0
+        def step(pop, gen):
+            scored = [(fitness(ind), ind) for ind in pop]
+            scored.sort(reverse=True)
+            best_fit, best = scored[0]
+            # hiển thị cá thể tốt nhất
+            self.show(self.canvas1, best, "blue")
+            self.status.config(text=f"GA gen={gen}, best_fit={best_fit}")
+            if best_fit == 28:
+                if best == goal:
+                    self.show(self.canvas1, best, "green")
+                    self.status.config(text=f"GA found GOAL at gen={gen}!")
+                    self.print_solution(best)
+                    return
+                else:
+                    self.status.config(text="GA found another solution, restarting...")
+                    self.job = self.root.after(self.delay, self.run_genetic)
+                    return
+            if gen >= MAX_GEN:
+                self.show(self.canvas1, best, "yellow")
+                self.status.config(text="GA stopped: max generations reached")
+                return
+            # --- chọn lọc theo roulette wheel ---
+            total_fit = sum(f for f, _ in scored)
+            probs = [f/total_fit for f, _ in scored]
+
+            def select():
+                r = random.random()
+                cum = 0
+                for p, (f, ind) in zip(probs, scored):
+                    cum += p
+                    if r <= cum:
+                        return ind
+                return scored[-1][1]
+            # --- tạo thế hệ mới ---
+            new_pop = []
+            while len(new_pop) < POP_SIZE:
+                p1, p2 = select(), select()
+                # crossover
+                cut = random.randint(1, self.n - 2)
+                child = p1[:cut] + p2[cut:]
+                # mutation
+                if random.random() < MUT_RATE:
+                    r = random.randrange(self.n)
+                    c = random.randrange(self.n)
+                    child = list(child)
+                    child[r] = c
+                    child = tuple(child)
+                new_pop.append(child)
+            self.job = self.root.after(self.delay, step, new_pop, gen + 1)
+        step(population, generation)
+
+    # ================= Beam Search ===================
+    def beam_search(self, beam_width=200, max_restart=20):
+        goal = tuple(self.goal)
+        step_count = 0
+        restart_count = 0
+        queue = [()]  # bắt đầu từ trạng thái rỗng
+
+        def step():
+            nonlocal queue, step_count, restart_count
+            if not queue:
+                if restart_count < max_restart:
+                    restart_count += 1
+                    self.status.config(
+                        text=f"Beam Search bế tắc, restart {restart_count}/{max_restart}..."
+                    )
+                    queue[:] = [()]  # reset lại từ đầu
+                    self.job = self.root.after(self.delay, step)
+                    return
+                else:
+                    self.status.config(text="Beam Search: không tìm thấy nghiệm.")
+                    return
+            new_states = []
+            for state in queue:
+                if len(state) == self.n:
+                    if state == goal:
+                        self.show(self.canvas1, state, "green")
+                        self.status.config(
+                            text=f"Beam Search tìm thấy GOAL sau {step_count} bước!"
+                        )
+                        self.print_solution(state)
+                        return
+                    continue
+                row = len(state)
+                for col in range(self.n):
+                    if self.is_safe(row, col, state):
+                        new_states.append(state + (col,))
+            if not new_states:
+                queue.clear()  # để trigger restart
+                self.job = self.root.after(self.delay, step)
+                return
+            # chọn beam_width tốt nhất
+            new_states.sort(key=lambda s: (self.heuristic_conflicts(s), -len(s)))
+            queue = new_states[:beam_width]
+            step_count += 1
+            for s in queue:
+                self.show(self.canvas1, s, "blue")
+            self.status.config(
+                text=f"Beam Search bước {step_count}, beam size={len(queue)}"
+            )
+            self.job = self.root.after(self.delay, step)
+        step()
 
 root = tk.Tk()
 app = NQueensGUI(root)
 root.mainloop()
-
