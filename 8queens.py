@@ -1,5 +1,4 @@
 import tkinter as tk
-from tkinter import ttk
 import random
 import math
 from collections import deque
@@ -22,47 +21,47 @@ class NQueensGUI:
         self.canvas2.pack(side="right", padx=5, pady=5)
 
         # tạo 3 dòng nút
-        frame_top = ttk.Frame(root)
+        frame_top = tk.Frame(root)
         frame_top.pack(side="bottom", pady=2)
 
-        frame_bottom = ttk.Frame(root)
+        frame_bottom = tk.Frame(root)
         frame_bottom.pack(side="bottom", pady=2)
 
-        frame_middle = ttk.Frame(root)
+        frame_middle = tk.Frame(root)
         frame_middle.pack(side="bottom", pady=5)
 
         # ====== Dòng trên ======
-        ttk.Button(frame_bottom, text="Random Goal", command=self.new_goal).pack(side="left", padx=5)
-        ttk.Button(frame_bottom, text="BFS", command=self.run_bfs).pack(side="left", padx=5)
-        ttk.Button(frame_bottom, text="BFS(2)", command=self.run_bfs2).pack(side="left", padx=5)
-        ttk.Button(frame_bottom, text="DFS", command=self.run_dfs).pack(side="left", padx=5)
-        ttk.Button(frame_bottom, text="DLS", command=self.run_dls).pack(side="left", padx=5)
-        ttk.Button(frame_bottom, text="UCS", command=self.run_ucs).pack(side="left", padx=5)
-        ttk.Button(frame_bottom, text="IDS", command=self.run_ids).pack(side="left", padx=5)
+        tk.Button(frame_bottom, text="Random Goal", command=self.new_goal).pack(side="left", padx=5)
+        tk.Button(frame_bottom, text="BFS", command=self.run_bfs).pack(side="left", padx=5)
+        tk.Button(frame_bottom, text="BFS(2)", command=self.run_bfs2).pack(side="left", padx=5)
+        tk.Button(frame_bottom, text="DFS", command=self.run_dfs).pack(side="left", padx=5)
+        tk.Button(frame_bottom, text="DLS", command=self.run_dls).pack(side="left", padx=5)
+        tk.Button(frame_bottom, text="UCS", command=self.run_ucs).pack(side="left", padx=5)
+        tk.Button(frame_bottom, text="IDS", command=self.run_ids).pack(side="left", padx=5)
 
         # ====== Dòng dưới ======
         self.dls_limit_var = tk.IntVar(value=self.n)
-        ttk.Label(frame_top, text="DLS limit:").pack(side="left", padx=(12, 2))
-        ttk.Entry(frame_top, width=3, textvariable=self.dls_limit_var).pack(side="left", padx=(0, 8))
+        tk.Label(frame_top, text="DLS limit:").pack(side="left", padx=(12, 2))
+        tk.Entry(frame_top, width=3, textvariable=self.dls_limit_var).pack(side="left", padx=(0, 8))
 
-        ttk.Button(frame_top, text="Greedy", command=self.run_greedy).pack(side="left", padx=5)
-        ttk.Button(frame_top, text="A*", command=self.run_astar).pack(side="left", padx=5)
-        ttk.Button(frame_top, text="Hill Climbing", command=self.run_hill_climbing).pack(side="left", padx=5)
-        ttk.Button(frame_top, text="SA", command=self.run_simulated_annealing).pack(side="left", padx=5)
-        ttk.Button(frame_top, text="GA", command=self.run_genetic).pack(side="left", padx=5)
-        ttk.Button(frame_top, text="Stop", command=self.stop).pack(side="left", padx=5)
+        tk.Button(frame_top, text="Greedy", command=self.run_greedy).pack(side="left", padx=5)
+        tk.Button(frame_top, text="A*", command=self.run_astar).pack(side="left", padx=5)
+        tk.Button(frame_top, text="Hill Climbing", command=self.run_hill_climbing).pack(side="left", padx=5)
+        tk.Button(frame_top, text="SA", command=self.run_simulated_annealing).pack(side="left", padx=5)
+        tk.Button(frame_top, text="GA", command=self.run_genetic).pack(side="left", padx=5)
+        tk.Button(frame_top, text="Stop", command=self.stop).pack(side="left", padx=5)
 
         # ====== Dòng giữa ======
-        ttk.Button(frame_middle, text="Beam", command=self.beam_search).pack(side="left", padx=5)
-        ttk.Button(frame_middle, text="AND-OR", command=self.run_and_or_search).pack(side="left", padx=5)
-        ttk.Button(frame_middle, text="Belief", command=self.run_belief_search).pack(side="left", padx=5)
+        tk.Button(frame_middle, text="Beam", command=self.beam_search).pack(side="left", padx=5)
+        tk.Button(frame_middle, text="AND-OR", command=self.run_and_or_search).pack(side="left", padx=5)
+        tk.Button(frame_middle, text="Belief", command=self.run_belief_search).pack(side="left", padx=5)
 
-        self.status = ttk.Label(root, text="Ready", relief="sunken", anchor="w")
+        self.status = tk.Label(root, text="Ready", relief="sunken", anchor="w")
         self.status.pack(side="bottom", fill="x")
 
         # Khung hiển thị belief cuối cùng
-        self.belief_text = tk.Text(root, height=12, width=80, font=("Consolas", 11))
-        self.belief_text.pack(pady=5)
+        self.text = tk.Text(root, height=12, width=80, font=("Consolas", 11))
+        self.text.pack(pady=5)
 
         self.draw_board(self.canvas1)
         self.draw_board(self.canvas2)
@@ -636,47 +635,132 @@ class NQueensGUI:
         self.stop()
         goal = tuple(self.goal)
         self.status.config(text="AND-OR Tree Search đang chạy...")
+        # path lưu lại các hành động để phát lại (place/backtrack/solution/deadend)
+        self.path = []
 
-        self.path = []  # để lưu lại các bước đặt hậu
-
-        # đệ quy để lấy danh sách các bước
+        # ========== Thu thập các bước bằng đệ quy ==========
         def and_or_search_steps(state):
-            # Nếu đã là goal
+            # Nếu trạng thái hiện tại là goal
             if state == goal:
                 self.path.append(("solution", state))
-                return True
-            # Nếu đặt đủ hậu nhưng không phải goal → thất bại
-            if len(state) == self.n:
-                return False
+                return True  # dừng khi gặp goal
 
-            r = len(state)  # hàng kế tiếp để đặt hậu
+            # Nếu đã đặt hết hậu mà chưa là goal → dead-end
+            if len(state) == self.n:
+                self.path.append(("deadend", state))
+                return False
+            r = len(state)
             for c in range(self.n):
                 if self.is_safe(r, c, state):
                     new_state = state + (c,)
-                    self.path.append(("place", new_state))  # thêm bước đặt hậu
+                    self.path.append(("place", new_state))
+                    # Nếu nhánh con dẫn tới goal thì dừng toàn bộ
                     if and_or_search_steps(new_state):
                         return True
-                    self.path.append(("backtrack", state))  # quay lui nếu sai
+                    # Nếu nhánh đó không ra goal → quay lui và thử nhánh khác
+                    self.path.append(("backtrack", state))
+            # Nếu không có nhánh nào dẫn tới goal → trả về False
             return False
-        # Gọi đệ quy 1 lần để thu thập tất cả các bước
+        # build toàn bộ path trước (như trước)
         and_or_search_steps(())
-        # phát lại các bước
+
+        # ========== Hàm trợ giúp hiển thị belief và phân loại ==========
+        def classify_state(state):
+            if len(state) == self.n and self.is_goal(state):
+                return "Goal"
+            elif len(state) < self.n:
+                row = len(state)
+                can_extend = any(self.is_safe(row, c, state) for c in range(self.n))
+                return "Expandable" if can_extend else "Dead-end"
+            else:
+                return "Invalid"
+
+        def draw_belief_and_state(belief, current_state, highlight_color):
+            """Vẽ board + overlay biểu diễn belief + vẽ trạng thái hiện tại (current_state)."""
+            cv = self.canvas1
+            cv.delete("all")
+            # vẽ nền ô
+            for r in range(self.n):
+                for c in range(self.n):
+                    x0, y0 = c * self.size, r * self.size
+                    x1, y1 = x0 + self.size, y0 + self.size
+                    color_bg = "#eeeed2" if (r + c) % 2 == 0 else "#769656"
+                    cv.create_rectangle(x0, y0, x1, y1, fill=color_bg, outline=color_bg)
+            # tính counts cho tiap ô từ belief
+            counts = [[0] * self.n for _ in range(self.n)]
+            total = len(belief)
+            for st in belief:
+                for r, c in enumerate(st):
+                    counts[r][c] += 1
+            # overlay thể hiện tần suất (giống run_belief_search)
+            for r in range(self.n):
+                for c in range(self.n):
+                    x0, y0 = c * self.size, r * self.size
+                    x1, y1 = x0 + self.size, y0 + self.size
+                    if total > 0 and counts[r][c] == total:
+                        cv.create_rectangle(x0, y0, x1, y1, fill="#0d6efd", stipple="gray25", outline="")
+                    elif counts[r][c] > 0:
+                        cv.create_rectangle(x0, y0, x1, y1, fill="#5bc0de", stipple="gray50", outline="")
+            # vẽ các hậu của trạng thái hiện tại (nếu có)
+            for r, c in enumerate(current_state):
+                x = c * self.size + self.size // 2
+                y = r * self.size + self.size // 2
+                cv.create_text(x, y, text="♛", font=("Segoe UI Symbol", int(self.size * 0.6)), fill=highlight_color)
+
+        def show_belief_states(belief, stepnum):
+            # cập nhật text box (step-by-step)
+            self.text.delete(1.0, tk.END)
+            self.text.insert(tk.END, f"Số bước: {stepnum} - Tổng trạng thái: {len(belief)}\n\n")
+            self.text.insert(tk.END, f"{'STT':<5}{'Trạng thái hậu':<55}{'Loại':<15}\n")
+            self.text.insert(tk.END, "-" * 80 + "\n")
+            for i, st in enumerate(sorted(belief), 1):
+                pos_str = ", ".join([f"({r},{c})" for r, c in enumerate(st)])
+                label = classify_state(st)
+                self.text.insert(tk.END, f"{i:<5}{pos_str:<55}{label:<15}\n")
+
+        # ========== Phát lại các bước và cập nhật belief step-by-step ==========
         self.step_index = 0
         def animate_steps():
+            # Nếu đã hết path → kết thúc
             if self.step_index >= len(self.path):
                 self.status.config(text="AND-OR Tree Search hoàn thành!")
                 return
+
             action, state = self.path[self.step_index]
+
+            # Nếu bước hiện tại là solution → dừng luôn tại đó
+            if action == "solution":
+                self.status.config(text=f"Đã tìm thấy self.goal sau {self.step_index + 1} bước!")
+                # Vẽ bàn cờ ở trạng thái goal
+                belief = {state}
+                draw_belief_and_state(belief, state, "green")
+                return
+
+            action, state = self.path[self.step_index]
+            # màu hiển thị theo loại action
             if action == "place":
-                self.show(self.canvas1, state, "blue")
+                color = "blue"
             elif action == "backtrack":
-                self.show(self.canvas1, state, "red")
+                color = "red"
             elif action == "solution":
-                self.show(self.canvas1, state, "green")
+                color = "green"
+            elif action == "deadend":
+                color = "orange"
+            else:
+                color = "blue"
+            # belief hiện tại = các trạng thái "place/solution/deadend" xuất hiện tới bước này
+            belief = set()
+            for act, st in self.path[: self.step_index + 1]:
+                if act in ("place", "solution", "deadend"):
+                    belief.add(st)
+            # vẽ overlay belief rồi vẽ trạng thái hiện tại
+            draw_belief_and_state(belief, state, color)
+            # cập nhật text box
+            show_belief_states(belief, self.step_index + 1)
             self.step_index += 1
-            # 👇 điều chỉnh thời gian mỗi bước
-            self.job = self.root.after(20, animate_steps)  # 20ms mỗi bước
-        # Bắt đầu phát từng bước
+            # tốc độ playback theo self.delay (bạn có thể chỉnh self.delay)
+            self.job = self.root.after(max(self.delay, 30), animate_steps)
+        # bắt đầu phát
         animate_steps()
 
     # ================= Belief State Search ==================
@@ -735,14 +819,14 @@ class NQueensGUI:
             else:
                 return "Invalid"
         def show_belief_states(belief):
-            self.belief_text.delete(1.0, tk.END)
-            self.belief_text.insert(tk.END, f"Tổng: {len(belief)} trạng thái\n\n")
-            self.belief_text.insert(tk.END, f"{'STT':<5}{'Trạng thái hậu':<50}{'Trạng thái':<15}\n")
-            self.belief_text.insert(tk.END, "-" * 70 + "\n")
+            self.text.delete(1.0, tk.END)
+            self.text.insert(tk.END, f"Tổng: {len(belief)} trạng thái\n\n")
+            self.text.insert(tk.END, f"{'STT':<5}{'Trạng thái hậu':<50}{'Trạng thái':<15}\n")
+            self.text.insert(tk.END, "-" * 70 + "\n")
             for i, state in enumerate(sorted(belief), 1):
                 pos_str = ", ".join([f"({r},{c})" for r, c in enumerate(state)])
                 label = classify_state(state)
-                self.belief_text.insert(tk.END, f"{i:<5}{pos_str:<55}{label:<15}\n")
+                self.text.insert(tk.END, f"{i:<5}{pos_str:<55}{label:<15}\n")
         def step():
             nonlocal belief_state, step_count
             if not belief_state:
