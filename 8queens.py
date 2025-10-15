@@ -53,8 +53,8 @@ class NQueensGUI:
 
         # ====== Dòng giữa ======
         tk.Button(frame_middle, text="AND-OR", command=self.run_and_or_search).pack(side="left", padx=5)
-        tk.Button(frame_middle, text="Belief(Unob)", command=self.run_belief_search).pack(side="left", padx=5)
-        tk.Button(frame_middle, text="Belief(Partial)", command=self.run_belief_search_2).pack(side="left", padx=5)
+        tk.Button(frame_middle, text="Belief(SSless)", command=self.run_belief_search).pack(side="left", padx=5)
+        tk.Button(frame_middle, text="PartialOb", command=self.run_partial_search).pack(side="left", padx=5)
         tk.Button(frame_middle, text="BackTr", command=self.run_backtracking).pack(side="left", padx=5)
         tk.Button(frame_middle, text="Forward", command=self.run_forwardchecking).pack(side="left", padx=5)
 
@@ -218,7 +218,7 @@ class NQueensGUI:
     def heuristic_to_goal(self, state):
         return self.n - len(state)
 
-    # ================= BFS, DFS ==================
+    # ================= BFS ==================
     def run_bfs(self):
         self.stop()  # dừng bất kỳ animation trước đó
         q = deque([()])
@@ -260,6 +260,7 @@ class NQueensGUI:
             self.job = self.root.after(self.delay, step)
         step()
 
+    # ================= DFS ==================
     def run_dfs(self):
         self.stop()  # dừng bất kỳ animation trước đó
         st = [()]
@@ -853,7 +854,7 @@ class NQueensGUI:
             self.job = self.root.after(max(self.delay, 30), step)
         step()
 
-    # ================= Belief State Search (không xác định) ==================
+    # ================= Belief State Search (Sensorless) ==================
     def run_belief_search(self):
         self.stop()
         belief_state = {()}  # bắt đầu với trạng thái rỗng
@@ -953,8 +954,8 @@ class NQueensGUI:
         self.is_goal_state = is_goal_state.__get__(self, self.__class__)
         step()
 
-    # ================= Belief State Search (xác định một phần) ==================
-    def run_belief_search_2(self):
+    # ================= Partial Observation Search ==================
+    def run_partial_search(self):
         self.stop()
         n = self.n
         step_count = 0
