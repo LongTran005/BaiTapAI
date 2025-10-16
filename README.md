@@ -105,7 +105,7 @@
       - Ưu điểm: Mô phỏng tốt các bài toán có điều kiện phức tạp.
       - Nhược điểm: Không thích hợp với không gian tìm kiếm lớn.
   
-      2.5.2. Belief State Search
+      2.5.2. Belief State Search (Sensorless)
   ![SSless](https://github.com/user-attachments/assets/218c8580-b8ab-4f6a-8289-ca9d3d64a748)
   
       - Áp dụng khi không quan sát được trạng thái thật, chỉ biết tập hợp các khả năng có thể xảy ra.
@@ -134,7 +134,98 @@
       - Sau mỗi lần gán giá trị, loại bỏ trước các giá trị không hợp lệ cho các biến còn lại.
       - Ưu điểm: Phát hiện xung đột sớm, giảm số lần quay lui.
       - Nhược điểm: Tốn bộ nhớ hơn Backtracking
+
+3. Kết quả và đánh giá
+   - Chương trình chạy thành công, hiển thị rõ từng bước đặt hậu.
+   - Các thuật toán tìm kiếm cho kết quả hợp lệ, trực quan.
+   - Giao diện dễ sử dụng, hỗ trợ nhiều loại thuật toán khác nhau.
+   - Các thuật toán heuristic (A*, Greedy, Hill, Anneal, Genetic) cho tốc độ nhanh hơn so với DFS/BFS.
+
+4. So sánh các thuật toán
+
+  4.1. Breadth-First Search (BFS)
+   - Tìm được lời giải: Có.
+   - Đặc điểm: Tìm theo lớp, đảm bảo lời giải ngắn nhất nếu chi phí các bước bằng nhau; tốn nhiều bộ nhớ.
+   - Khi nên dùng: Khi muốn tìm lời giải ngắn nhất và máy đủ bộ nhớ.
   
+   4.2. Depth-First Search (DFS)
+   - Tìm được lời giải: Có.
+   - Đặc điểm: Tìm theo lớp, đảm bảo lời giải ngắn nhất nếu chi phí các bước bằng nhau; tốn nhiều bộ nhớ.
+   - Khi nên dùng: Khi muốn tìm lời giải ngắn nhất và máy đủ bộ nhớ.
+
+   4.3. Uniform Cost Search (UCS)
+   - Tìm được lời giải: Có.
+   - Đặc điểm: Giống BFS khi chi phí bằng nhau, nhưng xử lý tốt khi mỗi bước có chi phí khác nhau.
+   - Khi nên dùng: Khi các bước có chi phí không đồng nhất.
+
+   4.4. Depth Limit Search (DLS)
+   - Tìm được lời giải: Có (tùy giới hạn).
+   - Đặc điểm: DFS có giới hạn độ sâu, tránh lạc sâu vô hạn nhưng có thể bỏ sót.
+   - Khi nên dùng: Khi biết hoặc ước lượng được độ sâu cần tìm.
+
+   4.5. Iterative Deepening Search (IDS)
+   - Tìm được lời giải: Có.
+   - Đặc điểm: Kết hợp ưu điểm của BFS (tối thiểu bước) và DFS (bộ nhớ thấp), lặp DLS với giới hạn tăng dần.
+   - Khi nên dùng: Khi muốn cân bằng giữa bộ nhớ và thời gian.
+
+   4.6. Greedy Search
+   - Tìm được lời giải: Có (nhiều khi).
+   - Đặc điểm: Dùng heuristic (số cặp hậu xung đột), chạy nhanh nhưng có thể không tối ưu hoặc thất bại.
+   - Khi nên dùng: Khi cần tốc độ và heuristic đủ tốt.
+
+   4.7. A* Search
+   - Tìm được lời giải: Có (thường).
+   - Đặc điểm: Kết hợp chi phí thực (g) và heuristic (h) để chọn đường đi tối ưu.
+   - Khi nên dùng: Khi cần lời giải tối ưu và có heuristic phù hợp.
+
+   4.8. Hill Climbing
+   - Tìm được lời giải: Có / Dễ mắc kẹt.
+   - Đặc điểm: Tối ưu cục bộ; rất nhanh nhưng có thể dừng ở cực trị địa phương.
+   - Khi nên dùng: Khi muốn thử nghiệm nhanh hoặc kết hợp với restart để cải thiện.
+
+   4.9. Simulated Annealing
+   - Tìm được lời giải: Có (thường).
+   - Đặc điểm: Giống hill climbing nhưng có thể chấp nhận bước tệ trong giai đoạn đầu để thoát cực trị địa phương.
+   - Khi nên dùng: Khi hill climbing bị kẹt, cần giải pháp tốt hơn trong thời gian hợp lý.
+
+   4.10. Genetic Algorithm
+   - Tìm được lời giải: Có (thường).
+   - Đặc điểm: Dựa trên tiến hóa — quần thể, lai ghép, đột biến; không đảm bảo tối ưu tuyệt đối.
+   - Khi nên dùng: Khi không gian tìm kiếm lớn, cần phương pháp tiến hóa ngẫu nhiên.
+
+   4.11. Beam Search
+   - Tìm được lời giải: Có (tùy beam width).
+   - Đặc điểm: Giữ top-k trạng thái tốt nhất mỗi bước; giảm bộ nhớ nhưng có thể bỏ sót lời giải tối ưu.
+   - Khi nên dùng: Khi muốn cân bằng giữa hiệu quả và tốc độ.
+
+   4.12. And-Or Search
+   - Tìm được lời giải: Có (tùy).
+   - Đặc điểm: Phù hợp cho bài toán có cấu trúc phân nhánh phức tạp.
+   - Khi nên dùng: Trong bài toán nâng cao hoặc có cây lựa chọn AND/OR.
+
+   4.13. Belief State Search (Sensorless)
+   - Tìm được lời giải: Có (cho tập belief).
+   - Đặc điểm: Xét nhiều trạng thái khả dĩ cùng lúc (sensorless idea).
+   - Khi nên dùng: Khi bài toán có yếu tố bất định hoặc thiếu cảm biến (sensorless).
+
+   4.14. Partial Observation Search
+   - Tìm được lời giải: Có (tùy).
+   - Đặc điểm: Sinh progression của tập belief; minh họa tiến trình cập nhật trạng thái trong bài toán sensorless.
+   - Khi nên dùng: Trong phần mở rộng / minh họa AI nâng cao (Belief State Progression).
+
+   4.15. Backtracking
+   - Tìm được lời giải: Có.
+   - Đặc điểm: Dễ hiểu, hiệu quả cho bài toán ràng buộc nếu có loại bỏ nhánh sớm (pruning).
+   - Khi nên dùng: Khi giải CSP cơ bản như 8-Queens.
+
+   4.16. Forward Checking
+   - Tìm được lời giải: Có (hiệu quả hơn Backtrack).
+   - Đặc điểm: Gỡ bỏ giá trị không hợp lệ trong các biến chưa gán → giảm nhánh duyệt.
+   - Khi nên dùng: Khi cần tăng hiệu quả so với quay lui thuần túy.
+
+
+     
+
   
   
       
